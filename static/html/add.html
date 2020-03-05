@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+    <style type="text/css">
+        body {
+            text-align: center;
+        }
+        img {
+            width: 100px;
+            height: 100px;
+            border-radius: 30px;
+        }
+        div {
+            margin-bottom: 30px;
+        }
+        .add-area {
+            width: 800px;
+            margin: 50px auto;
+            text-align: left;
+            background: #efefef;
+        }
+    </style>
+</head>
+<body>
+    <h1>新增菜品</h1>
+    <div class="add-area">
+        <div>菜品名称：<input type="text" id="name" value=""></div>
+        <div>菜品描述：<input type="text" id="desc" value=""></div>
+        <div>菜品价格：<input type="text" id="price" value=""></div>
+        <div>菜品类型：
+            <select id="type">
+                <option value="热菜">热菜</option>
+                <option value="凉菜">凉菜</option>
+                <option value="甜品">甜品</option>
+                <option value="酒水">酒水</option>
+            </select>
+        </div>
+        <div>菜品图片：
+            <input type="file" value="" id="file">
+            <button onclick="doUpload()">上传</button>
+            <img src="" id="imgShow"/>
+        </div>
+    </div>
+    <button onclick="doSave()">保存菜品</button>
+    <button onclick="doCancel()">取消</button>
+</body>
+</html>
+<script src="https://cdn.bootcss.com/jquery/3.4.1/jquery.js"></script>
+<script>
+let imgUrl = '';
+// TODO 编辑 获取URL中是否有ID，有ID先查询接口,填充数据
+const id = window.location.search.split('?')[1].split('=')[1];
+if (id) {
+    const param = {
+        _id: id
+    };
+    $.post({
+        url: 'http://localhost:3000/food/idQuery',
+        contentType: 'application/json',
+        data: JSON.stringify(param),
+        success: data => {
+            if (!data.errno) {
+                console.log(data.data, 'data');
+                const {name, desc, price, typeName, img} = data.data[0];
+                $('#name').val(name);
+                $('#desc').val(desc);
+                $('#price').val(price);
+                $('#typeName').val(typeName);
+                $('#imgShow').attr('src', img);
+                imgUrl = img;
+            }
+            else {
+                alert('searchfood fail');
+            }
+        }
+    });
+}
+
+function doUpload() {
+    const file = $('#file')[0].files[0];
+    // 创建formdata对象
+    const formData = new FormData();
+    formData.append('file', file);
+
+    $.ajax({
+        url: 'http://localhost:3000/file/uploadSingle',
+        type: 'POST',
+        cache: false,
+        data: formData,
+        processData: false,
+        contentType: false,
+        success: data => {
+            if (!data.errno) {
+                imgUrl = 'http://localhost:3000' + data.url;
+                $('#imgShow').attr('src', imgUrl);
+            }
+            else {
+                alert('upload fail');
+            }
+        }
+    });
+}
+function doSave() {
+    const name = $('#name').val();
+    const desc = $('#desc').val();
+    const price = $('#price').val();
+    const typeName = $('#type').val();
+    // TODO 必填校验
+    let param = {
+        name,
+        desc,
+        price,
+        typeName,
+        img: imgUrl
+    };
+    if (id) {
+        // TODO 数据diff
+        param = Object.assign(param, {_id: id});
+        $.post({
+            url: 'http://localhost:3000/food/update',
+            contentType: 'application/json',
+            data: JSON.stringify(param),
+            success: data => {
+                if (!data.errno) {
+                    alert('updatefood success');
+                    window.history.back(-1);
+                }
+                else {
+                    alert('updatefood fail');
+                }
+            }
+        });
+    }
+    else {
+        $.post({
+            url: 'http://localhost:3000/food/add',
+            contentType: 'application/json',
+            data: JSON.stringify(param),
+            success: data => {
+                if (!data.errno) {
+                    alert('addfood success');
+                    window.history.back(-1);
+                }
+                else {
+                    alert('addfood fail');
+                }
+            }
+        });
+    }
+}
+function doCancel() {
+    window.history.back(-1);
+}
+
+</script>

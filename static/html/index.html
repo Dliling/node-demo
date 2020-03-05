@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>系统管理</title>
+    <style type="text/css">
+        body {
+            text-align: center;
+            padding: 0;
+            margin: 0;
+            font-size: 20px;
+            background: skyblue;
+        }
+        table {
+            margin: 50px auto;
+        }
+        table, td {
+            border: 1px solid #eee;
+        }
+        img {
+            width: 100px;
+            height: 100px;
+        }
+    </style>
+</head>
+<body>
+    <h1>菜品系统管理</h1>
+    <button onclick="handleAddFood()">新增菜品</button>
+    <input type="text" value="" id="keyword">
+    <button onclick="handleQuery()">搜索菜品</button>
+    <table width="800" cellspacing="0" cellpadding="0">
+        <thead>
+            <tr>
+                <td>序号</td>
+                <td>菜品名称</td>
+                <td>菜品图片</td>
+                <td>菜品类型</td>
+                <td>菜品描述</td>
+                <td>菜品价格</td>
+                <td>菜品操作</td>
+            </tr>
+        </thead>
+        <tbody id="list"></tbody>
+    </table>
+    <div>
+        <button onclick="handlePage('first')">首页</button>
+        <button onclick="handlePage('pre')">上一页</button>
+        <input type="text" value="" class="whichpage">
+        <button onclick="handlePage('jump')">跳转</button>
+        <button onclick="handlePage('next')">下一页</button>
+        <button onclick="handlePage('last')">尾页</button>
+    </div>
+</body>
+</html>
+<script src="https://cdn.bootcss.com/jquery/3.4.1/jquery.js"></script>
+<script>
+// 总页数
+let allPage = null;
+// 获取菜品列表
+function getList(page) {
+    const url = 'http://localhost:3000/food/getInfoByPage';
+    const param = {
+        pageSize: 1,
+        page
+    };
+
+    $.post(url, param, data => {
+        if (!data.errno) {
+            const list = data.list;
+            this.rendList(list);
+            allPage = data.allNum;
+        }
+        else {
+            alert('getlist fail');
+        }
+    });
+}
+// 渲染列表
+function rendList(list) {
+    var nodes = '';
+
+    for (let i = 0; i < list.length; i++) {
+        nodes += `<tr>
+            <td>${i + 1}</td>
+            <td>${list[i].name}</td>
+            <td><img src="${list[i].img}" /></td>
+            <td>${list[i].typeName}</td>
+            <td>${list[i].desc}</td>
+            <td>￥${list[i].price}元</td>
+            <td>
+                <button class="add" onclick="handleEdit(this, '${list[i]._id}')">编辑</button>
+                <button class="delete" onclick="handleDel(this, '${list[i]._id}')">删除</button>
+            </td>
+            </tr>`;
+    }
+    $('#list').html(nodes);
+}
+// 新增菜品
+function handleAddFood() {
+    window.location.href = 'http://localhost:3000/public/html/add.html';
+}
+
+// 菜品模糊查询
+function handleQuery() {
+    const kw = $('#keyword').val();
+    const url = 'http://localhost:3000/food/kwQuery';
+    const param = {kw};
+
+    $.post(url, param, data => {
+        if (!data.errno) {
+            alert('searchfood success');
+            rendList(data.data);
+        }
+        else {
+            // TODO 暂无数据
+            alert('searchfood fail');
+        }
+    });
+}
+
+let curPage = 1;
+// 页数跳转
+function handlePage(type) {
+    switch (type) {
+        case 'first':
+            curPage = 1;
+            break;
+        // 边界判断
+        case 'pre':
+            if (curPage <= 0) {
+                alert('第一页啦~');
+                return;
+            }
+            curPage--;
+            break;
+        case 'jump':
+            curPage = $('.whichpage').val();
+            break;
+        // 边界判断
+        case 'next':
+            if (curPage >= allPage) {
+                alert('最后一页啦~');
+                return;
+            }
+            curPage++;
+            break;
+        case 'last':
+            curPage = allPage;
+            break;
+        default:
+            break;
+    }
+    getList(curPage);
+}
+// 编辑
+function handleEdit(obj, id) {
+    window.location.href = `http://localhost:3000/public/html/add.html?id=${id}`;
+}
+// 删除
+function handleDel(obj, id) {
+
+    const r = confirm('是否删除？');
+    if (r == true) {
+        const url = 'http://localhost:3000/food/del';
+        const param = {
+            _id: id
+        };
+
+        $.post(url, param, data => {
+            if (!data.errno) {
+                alert('delfood success');
+                getList(1);
+            }
+            else {
+                alert('delfood fail');
+            }
+        });
+    }
+    else {
+        alert('delfood cancel');
+    }
+}
+
+getList(1);
+</script>
